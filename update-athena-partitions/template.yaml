@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  partition-manager
+
+  Sample SAM Template for partition-manager
+
+Parameters:
+  QueryOutputLocation:
+    Type: String
+  Database:
+    Type: String
+  TableName:
+    Type: String
+  LookbackHours:
+    Type: Number
+    Description: "Number of hours to lookback when constructing add partition call"
+    Default: 6
+  Region:
+    Type: String
+    Default: 'us-east-1'
+  LogLevel:
+    Type: String
+    Default: INFO
+  
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 300
+
+Resources:
+  PartitionManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: partition_manager/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
+          DATABASE_NAME: !Ref Database
+          TABLE_NAME: !Ref TableName
+          LOOKBACK_HOURS: !Ref LookbackHours
+          REGION: !Ref Region
+          OUTPUT_LOCATION: !Ref QueryOutputLocation
+      Events:
+        RunPartitionFetcher:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+      Policies:
+        - AWSAthenaExecute
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - athena:StartQueryExecution
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub
+                - "arn:aws:s3:::{bucket}"
+                - { Bucket: !Ref QueryOutputLocation }
+
+Outputs:
+  PartitionaManagerFunction:
+    Description: "Partition Manager Lambda Function ARN"
+    Value: !GetAtt PartitionManagerFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt PartitionManagerFunctionRole.Arn
