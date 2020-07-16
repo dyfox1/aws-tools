@@ -2,9 +2,19 @@
 
 This lambda function runs athena add partition on a schedule (once per hour) to update partitions in Athena.
 
+### Assumptions
+
+It's assumed the format for partitions is:
+
+```
+"year={year}, month={month}, day={day}, hour={hour}"
+```
+
+Change this in the script if your partitions are different.
+
 Why not use crawlers?
 * Crawlers can become expensive and time-consuming to execute as they have to scan each file
-* Data from upstream infohub has (in the past) changed enough that the crawler created new tables (even with grouping set)
+* If data from upstream sources changes enough that the crawler created new tables (even with grouping set), the crawler will start spitting out potentially hundreds of tables.  This threshold is based on comparisons with existing/older data and can be very difficult to debug.  While this can be mitigated with crawler config, in production it's not something we want to deal with when alternative/cheaper methods exist for updating partitions on non-changing schema
 
 Why not use MSCK?
 * MSCK can time out and there isn't a clean way to make sure it completes every run
