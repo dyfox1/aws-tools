@@ -6,6 +6,12 @@ Description: >
   Sample SAM Template for partition-manager
 
 Parameters:
+  Application:
+    Type: String
+  SubApplication:
+    Type: String
+  Environment:
+    Type: String
   QueryOutputLocation:
     Type: String
   Database:
@@ -50,19 +56,31 @@ Resources:
           Properties:
             Schedule: rate(1 hour)
       Policies:
-        - AWSAthenaExecute
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - athena:StartQueryExecution
-              Resource: '*'
-            - Effect: Allow
-              Action:
-                - s3:PutObject
-              Resource: !Sub
-                - "arn:aws:s3:::{bucket}"
-                - { Bucket: !Ref QueryOutputLocation }
+        - AthenaQueryPolicy:
+            WorkGroupName: primary
+        - Statement:
+          - Sid: GluePermissions
+            Effect: Allow
+            Action:
+            - glue:*
+            Resource: '*'
+          - Sid: S3PutQueryResultsPermissions
+            Effect: Allow
+            Action:
+            - s3:GetBucketLocation
+            - s3:GetObject
+            - s3:ListBucket
+            - s3:ListBucketMultipartUploads
+            - s3:ListMultipartUploadParts
+            - s3:AbortMultipartUpload
+            - s3:PutObject
+            Resource:
+              - !Sub
+                - "arn:aws:s3:::${bucket}/*"
+                - { bucket: !Ref QueryOutputLocation }
+              - !Sub
+                - "arn:aws:s3:::${bucket}"
+                - { bucket: !Ref QueryOutputLocation }
 
 Outputs:
   PartitionaManagerFunction:

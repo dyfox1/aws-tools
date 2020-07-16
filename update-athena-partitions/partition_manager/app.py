@@ -47,15 +47,20 @@ def lambda_handler(event, context):
         table_name=TBL_NAME
     )
     for partition_string in iter_dates():
+        logger.info("Appending {}".format(partition_string))
         query += PARTITION_STATEMENT.format(
             partition_string=partition_string
         )
     
-    ATHENA_CLIENT.start_query_execution(
+    logger.info("Executing {}".format(query))
+
+    response = ATHENA_CLIENT.start_query_execution(
         QueryString=query,
         QueryExecutionContext={
             'Database': DB_NAME
         },
         ResultConfiguration={
-            'OutputLocation': OUTPUT_LOCATION
+            'OutputLocation': 's3://{}'.format(OUTPUT_LOCATION)
         })
+    logger.info("Execution complete")
+    return response
